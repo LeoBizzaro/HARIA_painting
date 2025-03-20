@@ -35,7 +35,7 @@ private:
     Eigen::Vector3d final_position;
     Eigen::Quaterniond final_orientation;
     Eigen::Quaterniond current_orientation;
-    Eigen::VectorXd dq;
+    Eigen::VectorXd dq,dq_meas;
 
     std::array<double, 42> jacobian_array;
     std::array<double ,3> final_position_array;
@@ -46,6 +46,8 @@ private:
     franka::RobotState current_state;
     geometry_msgs::Pose last_pose_final;
     geometry_msgs::PoseStamped last_pose_final_stamped;
+
+
 
     double dist_to_switch;
     double speed_constant;
@@ -61,10 +63,14 @@ public:
         nh.setParam("speed_constant", 0.05);
         nh.setParam("safety_factor", 1);
         dist_to_switch = 0.01;
+        dq.resize(7);
+        dq_meas.resize(7);
+        dq_meas << 0,0,0,0,0,0,0;
 
   }
 
     void poseFinalMessageReceived(const geometry_msgs::PoseStamped& pose) {
+        //ROS_INFO("Got a pose!");
 
         last_pose_final_stamped = pose;
         last_pose_final = last_pose_final_stamped.pose;
@@ -97,8 +103,21 @@ public:
     void frankaStateMessageReceived(const franka_msgs::FrankaState& robot_state) {
 
         if (last_pose_final.position.x < 0.0001 && last_pose_final.position.y < 0.0001 && last_pose_final.position.z < 0.0001) {
-            final_position_array = {0.4,0,0.4};
-            final_orientation_array = {1,0,0,0};
+            //final_position_array = {0.4,0,0.4};
+            //final_orientation_array = {1,0,0,0};
+            //updateFinalPose();
+        }
+
+        if (ros::Time::now() -last_pose_final_stamped.header.stamp > ros::Duration(2.0)){
+
+            //ROS_INFO_STREAM_THROTTLE(1,"Initial pose! " << ros::Time::now() -last_pose_final_stamped.header.stamp);
+
+            transform_current = Eigen::Matrix4d::Map(robot_state.O_T_EE.data());
+            Eigen::Vector3d position(transform_current.translation());
+            Eigen::Quaterniond orientation(transform_current.rotation());
+
+            final_position_array = {position.x(),position.y(),position.z()};
+            final_orientation_array = {orientation.x(),orientation.y(),orientation.z(),orientation.w()};
             updateFinalPose();
         }
 
@@ -107,6 +126,11 @@ public:
         transform_current = Eigen::Matrix4d::Map(robot_state.O_T_EE.data());
         Eigen::Vector3d position(transform_current.translation());
         Eigen::Quaterniond orientation(transform_current.rotation());
+
+        //for (int i=0;i<7;i++)         dq_meas[i]=robot_state.dq[i];
+        dq_meas << robot_state.dq[0],robot_state.dq[1],robot_state.dq[2],robot_state.dq[3],
+                    robot_state.dq[4],robot_state.dq[5],robot_state.dq[6];
+        
 
         current_position = position;
         current_orientation = orientation;
@@ -142,12 +166,17 @@ public:
         // Safety check
         //if(dq.maxCoeff() > 0.1*safety_factor) dq = dq*(0.1*safety_factor);
 
-        //std::cout << "The twist is:\n" << twist << std::endl;
-        //nh.setParam("speed_constant", speed_constant);
-        if (pub_vel.getNumSubscribers() > 0) {
-            nh.getParam("speed_constant", speed_constant);
+        bool invalid=(dq.array().isNaN()).any();
 
-            dq = speed_constant*dq;
+
+        //std::cout << "The twist is:\n" <<  invalid  << " subs: " << pub_vel.getNumSubscribers() << "\n" << twist << "\n##\n" << jacobian << std::endl;
+        //nh.setParam("speed_constant", speed_constant);
+        if (pub_vel.getNumSubscribers() > 0 && !invalid) {
+            //nh.getParam("/speed_constant", );
+            nh.param("speed_constant", speed_constant, 0.5);
+
+            dq = 0.1*speed_constant*dq + 0.9*dq_meas; //exp filter
+            //dq = speed_constant*dq;
             
             //std::cout << "The solution is:\n" << dq << std::endl;
             std_msgs::Float64MultiArray msg;
@@ -165,7 +194,7 @@ public:
         Eigen::Vector3d dist_vect = Eigen::Vector3d::Constant(dist_to_switch);
         if(linear_velocity.norm() >= dist_to_switch)
         {
-            linear_velocity = linear_velocity/linear_velocity.norm();
+            //linear_velocity = linear_velocity/linear_velocity.norm();
         }
         else linear_velocity.setConstant(0);
 
@@ -198,7 +227,7 @@ public:
 int main(int argc, char **argv) {
     ros::init(argc, argv, "update_pose_end_effector");
     UpdatePoseEndEffector update;
-    ros::Rate loop_rate(1000);
+    ros::Rate loop_rate(100);
     while (ros::ok()) {
         //update.variationPose();
         ros::spin();

@@ -7,12 +7,12 @@ project(franka_demo_package)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-set(CMAKE_PREFIX_PATH "/home/haria/ros/src/libfranka/build" ${CMAKE_PREFIX_PATH})
+#set(CMAKE_PREFIX_PATH "/home/haria/ros/src/libfranka/build" ${CMAKE_PREFIX_PATH})
 
 find_package(catkin REQUIRED COMPONENTS roscpp franka_msgs franka_control std_msgs message_generation)
 find_package(Franka REQUIRED)
 find_package(Eigen3 REQUIRED)
-
+link_directories(/opt/openrobots/lib)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -153,7 +153,7 @@ target_link_libraries(poseFinalPublisherNew ${catkin_LIBRARIES} franka)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# ${catkin_INCLUDE_DIRS}
+ ${catkin_INCLUDE_DIRS}
 # ${PROJECT_SOURCE_DIR}/include
 )
 

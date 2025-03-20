@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
 
     ros::Publisher pub_pose_final = nh.advertise<geometry_msgs::PoseStamped>("demo/pose_final", 1000);
-    ros::Subscriber sub_nextPose = nh.subscribe("/demo/nextPose", 1000, nextPoseCallback);
+    ros::Subscriber sub_nextPose = nh.subscribe("demo/nextPose", 1000, nextPoseCallback);
     ros::Subscriber sub_currentPose = nh.subscribe("franka_state_controller/franka_states",1000,frankaStateMessageReceived);
     ros::Rate rate(10);
 
@@ -138,6 +138,7 @@ int main(int argc, char **argv) {
         if (can_publish_next) {
             msg.pose = pose_sequence[current_index];
             msg.header.frame_id = "fr3_link0";
+            msg.header.stamp=ros::Time::now();
             pub_pose_final.publish(msg);
             current_index = (current_index + 1) % rows;
             index_list_el++;
