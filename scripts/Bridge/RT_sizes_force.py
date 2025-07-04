@@ -104,7 +104,7 @@ COLOR_CODE_TO_PENCIL = {
     "#49C893b": 6,  # Light Green
     "#02704Db": 7,  # Dark Green
     "#0D2875b": 8,  # Dark Blue
-    "#0295D5b": 9,  # Light Blue
+    "#0295D5b": 9,  # Light Bluefds
     "#C0BDAEb": 10,  # White
 
     # Tight colors
