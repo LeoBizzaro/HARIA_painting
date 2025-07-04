@@ -37,9 +37,10 @@ private:
     Eigen::Quaterniond current_orientation;
     Eigen::VectorXd dq,dq_meas;
 
-    std::array<double, 42> jacobian_array;
-    std::array<double ,3> final_position_array;
-    std::array<double, 4> final_orientation_array;
+    // Changed from std::array to Eigen vectors
+    Eigen::VectorXd jacobian_array;
+    Eigen::Vector3d final_position_array;
+    Eigen::Vector4d final_orientation_array;
 
     franka::Robot *robot;
     franka::Model *model;
@@ -60,13 +61,15 @@ public:
         franka_states = nh.subscribe("franka_state_controller/franka_states",1000, &UpdatePoseEndEffector::frankaStateMessageReceived,this);
         pub_vel = nh.advertise<std_msgs::Float64MultiArray>("fr_joint_velocity_controller/command",10);
         pub_nextPose = nh.advertise<std_msgs::Bool>("demo/nextPose", 10);
-        nh.setParam("speed_constant", 0.05);
+        nh.setParam("speed_constant", 0.4);
         nh.setParam("safety_factor", 1);
-        dist_to_switch = 0.01;
+        dist_to_switch = 0.005;
         dq.resize(7);
         dq_meas.resize(7);
         dq_meas << 0,0,0,0,0,0,0;
-
+        jacobian_array.resize(42);
+        final_position_array.setZero();
+        final_orientation_array.setZero();
   }
 
     void poseFinalMessageReceived(const geometry_msgs::PoseStamped& pose) {
@@ -74,8 +77,8 @@ public:
 
         last_pose_final_stamped = pose;
         last_pose_final = last_pose_final_stamped.pose;
-        final_orientation_array = {last_pose_final.orientation.x,last_pose_final.orientation.y,last_pose_final.orientation.z,last_pose_final.orientation.w};
-        final_position_array = {last_pose_final.position.x,last_pose_final.position.y,last_pose_final.position.z};
+        final_orientation_array << last_pose_final.orientation.x, last_pose_final.orientation.y, last_pose_final.orientation.z, last_pose_final.orientation.w;
+        final_position_array << last_pose_final.position.x, last_pose_final.position.y, last_pose_final.position.z;
 
         updateFinalPose();
 
@@ -84,9 +87,9 @@ public:
     void updateFinalPose()
     {
         
-
-        Eigen::Vector3d position(final_position_array.data());
-        Eigen::Quaterniond orientation(final_orientation_array.data());
+        // Access vector data directly instead of using .data()
+        Eigen::Vector3d position = final_position_array;
+        Eigen::Quaterniond orientation(final_orientation_array(3), final_orientation_array(0), final_orientation_array(1), final_orientation_array(2));
 
         Eigen::Matrix3d R = orientation.toRotationMatrix();
         Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
@@ -102,13 +105,15 @@ public:
 
     void frankaStateMessageReceived(const franka_msgs::FrankaState& robot_state) {
 
+        /*
         if (last_pose_final.position.x < 0.0001 && last_pose_final.position.y < 0.0001 && last_pose_final.position.z < 0.0001) {
-            //final_position_array = {0.4,0,0.4};
-            //final_orientation_array = {1,0,0,0};
-            //updateFinalPose();
-        }
+            final_position_array = {0.4,0,0.4};
+            final_orientation_array = {1,0,0,0};
+            updateFinalPose();
+        } */
 
-        if (ros::Time::now() -last_pose_final_stamped.header.stamp > ros::Duration(2.0)){
+        
+        if ((last_pose_final.position.x < 0.001 && last_pose_final.position.y < 0.001 && last_pose_final.position.z < 0.001)){ //ros::Time::now() -last_pose_final_stamped.header.stamp > ros::Duration(3.0)
 
             //ROS_INFO_STREAM_THROTTLE(1,"Initial pose! " << ros::Time::now() -last_pose_final_stamped.header.stamp);
 
@@ -116,10 +121,10 @@ public:
             Eigen::Vector3d position(transform_current.translation());
             Eigen::Quaterniond orientation(transform_current.rotation());
 
-            final_position_array = {position.x(),position.y(),position.z()};
-            final_orientation_array = {orientation.x(),orientation.y(),orientation.z(),orientation.w()};
+            final_position_array << position.x(), position.y(), position.z();
+            final_orientation_array << orientation.x(), orientation.y(), orientation.z(), orientation.w();
             updateFinalPose();
-        }
+        } 
 
         Eigen::Map<const Eigen::Matrix<double, 6, 7>> jacobian(robot_state.ZeroJacobian.data());
         //std::cout << jacobian << std::endl;
@@ -149,7 +154,7 @@ public:
             std_msgs::Bool msg;
             msg.data = true;
             pub_nextPose.publish(msg);
-            std::cout << "The robot is close to the final pose" << std::endl;
+            //std::cout << "The robot is close to the final pose" << std::endl;
         }
         else {
             std_msgs::Bool msg;
@@ -173,9 +178,9 @@ public:
         //nh.setParam("speed_constant", speed_constant);
         if (pub_vel.getNumSubscribers() > 0 && !invalid) {
             //nh.getParam("/speed_constant", );
-            nh.param("speed_constant", speed_constant, 0.5);
+            nh.param("speed_constant", speed_constant, 1.0);
 
-            dq = 0.1*speed_constant*dq + 0.9*dq_meas; //exp filter
+            dq = 0.8*speed_constant*dq + 0.2*dq_meas; //exp filter
             //dq = speed_constant*dq;
             
             //std::cout << "The solution is:\n" << dq << std::endl;
@@ -235,4 +240,3 @@ int main(int argc, char **argv) {
     }
     return 0;
 }
-

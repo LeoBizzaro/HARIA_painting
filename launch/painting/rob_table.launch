@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Launch the Franka FR3 robot -->
+    <include file="$(find franka_gazebo)/launch/fr3.launch"/>
+
+    <!-- Spawn a table in front of the robot -->
+    <node name="spawn_table" pkg="gazebo_ros" type="spawn_model" output="screen"
+          args="-file $(find franka_gazebo)/models/table/flat_pencil.sdf -sdf -model table -x 0.6 -y 0.0 -z 0.0"/>
+</launch>
+
+<!-- -file $(find franka_gazebo)/models/table/flat.sdf -sdf -model table -x 0.5 -y 0.0 -z 0.0 -->

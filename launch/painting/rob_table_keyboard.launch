@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Launch the Franka FR3 robot -->
+    <include file="$(find franka_gazebo)/launch/fr3.launch"/>
+
+    <!-- Spawn a table in front of the robot -->
+    <node name="spawn_table" pkg="gazebo_ros" type="spawn_model" output="screen"
+          args="-file $(find franka_gazebo)/models/table/flat_table_2.sdf -sdf -model table -x 0.6 -y 0.0 -z 0.0"/>
+          
+    <!-- Spawn a pecil on the top of the table -->
+    <node name="spawn_pencil" pkg="gazebo_ros" type="spawn_model" output="screen"
+          args="-file $(find franka_gazebo)/models/table/pencil_2.sdf -sdf -model pencil -x 0.6 -y 0.0 -z 0.0"/> 
+          
+    <!-- Start the joint velocity controller -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+          args="fr_joint_velocity_controller"/>
+          
+    <!-- Run the updatePoseEndEffectorEig node -->
+    <node name="update_pose_end_effector" pkg="franka_demo_package" type="updatePoseEndEffectorEig" output="screen"/>
+    
+     <!-- Run the iterative marker node -->   
+    <node name="interactive_marker_node"
+        pkg="franka_demo_package"
+        type="marker_plane_keyboard_levels.py"
+        output="screen"
+        cwd="node" />
+    
+    <!-- Run the RViz with the marker -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find franka_demo_package)/rviz_configs/demo_scene.rviz" />
+    
+    <!-- Run the bridge rviz-gazebo -->   
+    <node name="gazebo_objects_standalone"
+        pkg="franka_demo_package"
+        type="gazebo_objects_standalone.py"
+        output="screen"
+        cwd="node" />
+
+</launch>
