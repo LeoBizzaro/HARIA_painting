@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Launch the real Franka FR3 robot with the robot IP (to be specified) -->
+    <arg name="robot_ip" default="192.168.1.123" doc="IP address of the real FR3 robot"/>
+    <arg name="load_gripper" default="true" doc="Load the gripper"/>
+    <arg name="arm_id" default="fr3" doc="Robot namer"/>
+
+    
+    <!-- Include the real robot driver -->
+    <include file="$(find franka_control)/launch/franka_control.launch">
+        <arg name="robot_ip" value="$(arg robot_ip)"/>
+        <arg name="load_gripper" value="$(arg load_gripper)"/>
+        <arg name="arm_id"   value="$(arg arm_id)" />
+    </include>
+    
+             
+    <!-- Start the joint velocity controller -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+          args="fr_joint_torque_controller"/>
+          
+    <!-- Run the impedance controller node -->
+    <node name="cartesian_impedance_controller" pkg="franka_demo_package" type="cartesian_impedance_controller_PID" output="screen"/> 
+
+</launch>

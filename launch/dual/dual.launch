@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<launch>
+   
+ <!-- Start Gazebo (ONLY ONCE) -->
+     <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="paused" value="true"/>
+    <arg name="use_sim_time" value="false"/>
+    </include>
+ 
+  
+  <node name="controller_manager" pkg="controller_manager" type="controller_manager" respawn="false" output="screen"/>
+
+  <!-- Simulated Robot (Gazebo) -->
+  <group ns="sim_robot">
+
+    <include file="$(find franka_gazebo)/launch/fr3.launch">
+      <arg name="arm_id" value="sim_robot" />
+      <arg name="x" value="0.0" />  <!-- Adjust X position -->
+      <arg name="y" value="0.0" />  <!-- Adjust Y position -->
+      <arg name="z" value="0.0" />  <!-- Lift robot slightly to prevent collision -->
+      <arg name="controller" value="effort_joint_trajectory_controller" />
+      <arg name="rviz" value="false" />
+      <arg name="gazebo" value="false" />  <!-- Prevent launching Gazebo again -->
+      <arg name="paused" value="true" />
+    </include>
+
+    <!-- <rosparam command="load" file="$(find franka_control)/config/effort_controllers.yaml" ns="sim_robot/controller_manager"/> -->
+       <!-- 
+    <rosparam command="load" file="$(find franka_demo_package)/config/initial_positions.yaml" />
+    
+    -->
+
+  </group>
+
+
+  <!-- Real Robot -->
+  <group ns="real_robot">
+    <include file="$(find franka_control)/launch/franka_control.launch">
+      <arg name="arm_id" value="real_robot" />
+      <arg name="robot_ip" value="192.168.1.123"/>
+      <arg name="load_gripper" value="true"/>
+    </include>
+    
+     <!--   <rosparam command="load" file="$(find franka_control)/config/effort_controllers.yaml" ns="real_robot/controller_manager"/>  -->
+    
+  </group>
+
+</launch>

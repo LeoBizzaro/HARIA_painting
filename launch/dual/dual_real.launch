@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<launch>
+   
+ 
+  <node name="controller_manager" pkg="controller_manager" type="controller_manager" respawn="false" output="screen"/>
+  
+  
+  <group ns="robot1">
+    <include file="$(find franka_control)/launch/franka_control.launch">
+      <arg name="arm_id" value="robot1" />
+      <arg name="robot_ip" value="172.16.0.2"/>
+      <arg name="load_gripper" value="true"/>
+    </include>
+    
+        <!--rosparam command="load" file="$(find franka_control)/config/effort_controllers.yaml" ns="real_robot/controller_manager"/-->
+        <!-- poseFinalPublisher -->
+
+    <!-- updatePoseEndEffector -->
+    <node pkg="franka_demo_package" type="updatePoseEndEffectorNew" name="update_pose_node" output="screen" respawn="true"/>
+    <node name="controller_manager" pkg="controller_manager" type="controller_manager" args="spawn fr_joint_velocity_controller" respawn="false" output="screen"/>
+
+  </group>
+
+
+  <!-- Real Robot -->
+  <group ns="robot2">
+    <include file="$(find franka_control)/launch/franka_control.launch">
+      <arg name="arm_id" value="robot1" />
+      <arg name="robot_ip" value="172.16.0.3"/>
+      <arg name="load_gripper" value="true"/>
+    </include>
+    
+        <!--rosparam command="load" file="$(find franka_control)/config/effort_controllers.yaml" ns="real_robot/controller_manager"/-->
+        <!-- poseFinalPublisher -->
+
+    <!-- updatePoseEndEffector -->
+    <node pkg="franka_demo_package" type="updatePoseEndEffectorNew" name="update_pose_node" output="screen" respawn="true"/>
+    <node name="controller_manager" pkg="controller_manager" type="controller_manager" args="spawn fr_joint_velocity_controller" respawn="false" output="screen"/>
+
+  </group>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen"/>
+  <node name="joint_state_publisher" type="joint_state_publisher" pkg="joint_state_publisher" output="screen">
+    <rosparam  param="source_list">[robot1/joint_states, robot2/joint_states] </rosparam>
+    </node>
+
+  <!--param name="robot_description" command="$(find xacro)/xacro $(find franka_description)/robots/two_franka.urdf.xacro"/-->
+
+
+</launch>

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find franka_control)/launch/franka_control.launch">
+      <arg name="arm_id" value="real_robot" />
+      <arg name="robot_ip" value="172.16.0.3"/>
+      <arg name="load_gripper" value="true"/>
+    </include>
+    
+    <!-- poseFinalPublisher -->
+    <node pkg="franka_demo_package" type="poseFinalPublisherNew" name="pose_final_pub" output="screen"/>
+    
+
+    <!-- updatePoseEndEffector -->
+    <node pkg="franka_demo_package" type="updatePoseEndEffectorNew" name="update_pose_node" output="screen"/>
+
+</launch>
+
