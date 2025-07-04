@@ -48,7 +48,7 @@ MAX_Z_HEIGHT = 0.25
 Z_ACTIVE_BIG = 0.103
 Z_ACTIVE_SMALL = 0.127 # They start drawing at 0.128
 Z_ACTIVE = Z_ACTIVE_SMALL  # Default (can be overwritten when pencil is picked)
-Z_IDLE = 0.135 # Seems good
+Z_IDLE = 0.145 # Seems good
 CURRENT_Z_HEIGHT = Z_IDLE
 Z_INCREMENT = 0.001  # Fine increment for Z_ACTIVE adjustments
 
@@ -124,6 +124,7 @@ COLOR_CODE_TO_PENCIL = {
 current_pencil = None
 pencil_ready = False
 first_coordinate_after_idle = True
+gradual_approach_in_progress = False
 
 # === Robot State ===
 last_valid_x = WORKSPACE_CENTER_X
@@ -390,6 +391,7 @@ def keyboard_listener():
             rospy.signal_shutdown("Keyboard quit")
             break
 
+
 def tcp_receiver():
     global last_valid_x, last_valid_y, last_tcp_time, first_coordinate_after_idle
 
@@ -463,6 +465,8 @@ def tcp_receiver():
                             if pencil_ready:
                                 # NEW LOGIC: Check if this is the first coordinate after idle
                                 if first_coordinate_after_idle:
+                                    rospy.loginfo("First coordinate after idle detected - using gradual approach")
+                                    rospy.loginfo("first_coordinate_after_idle flag was: {}".format(first_coordinate_after_idle))
                                     gradual_approach_from_idle(raw_x, raw_y)
                                 else:
                                     # Normal real-time following
@@ -566,21 +570,26 @@ def handle_color_change(color_code, move_client, grasp_client):
 
 
 def idle_monitor():
-    global CURRENT_Z_HEIGHT
+    global CURRENT_Z_HEIGHT, first_coordinate_after_idle, gradual_approach_in_progress
     rate = rospy.Rate(2)
     already_idle = False
     
     while not rospy.is_shutdown():
+        # Don't interfere if gradual approach is in progress
+        if gradual_approach_in_progress:
+            rate.sleep()
+            continue
+            
         if pencil_ready and (time.time() - last_tcp_time > 2.0):
             if not already_idle:
                 CURRENT_Z_HEIGHT = Z_IDLE
                 publish_pose(last_valid_x, last_valid_y, CURRENT_Z_HEIGHT)
-                rospy.loginfo("Pencil moved to idle position: Z={}".format(Z_IDLE))
+                rospy.loginfo("Pencil moved to idle position: Z={} - Next coordinate will use gradual approach".format(Z_IDLE))
                 already_idle = True
                 first_coordinate_after_idle = True  # Flag that next coordinate needs gradual approach
-
         else:
             if already_idle and (time.time() - last_tcp_time <= 2.0):
+                rospy.loginfo("Exiting idle state")
                 already_idle = False
         
         rate.sleep()
@@ -590,24 +599,32 @@ def gradual_approach_from_idle(target_x, target_y):
     """
     Perform gradual approach from idle position to first drawing coordinate
     """
-    global CURRENT_Z_HEIGHT, first_coordinate_after_idle
+    global CURRENT_Z_HEIGHT, first_coordinate_after_idle, gradual_approach_in_progress
     
-    rospy.loginfo("Performing gradual approach from idle to first coordinate...")
+    rospy.loginfo("=== PERFORMING GRADUAL APPROACH FROM IDLE ===")
+    rospy.loginfo("Target position: ({:.3f}, {:.3f})".format(target_x, target_y))
+    
+    # Set flag to prevent idle monitor interference
+    gradual_approach_in_progress = True
     
     # Step 1: Move to target X,Y at current idle height
+    rospy.loginfo("Step 1: Moving to target X,Y at idle height")
     publish_pose(target_x, target_y, Z_IDLE)
     time.sleep(0.8)  # Wait for movement to complete
     
     # Step 2: Gradually descend to active drawing height
+    rospy.loginfo("Step 2: Gradually descending to active height")
     perform_gradual_movement(
         target_x, target_y, Z_IDLE,
         target_x, target_y, Z_ACTIVE,
-        steps=4, delay=0.3
+        steps=6, delay=0.3
     )
     
     CURRENT_Z_HEIGHT = Z_ACTIVE
     first_coordinate_after_idle = False
-    rospy.loginfo("Gradual approach complete. Ready for real-time following.")
+    gradual_approach_in_progress = False  # Clear flag
+    rospy.loginfo("=== GRADUAL APPROACH COMPLETE - READY FOR RT FOLLOWING ===")
+    rospy.loginfo("first_coordinate_after_idle flag set to: {}".format(first_coordinate_after_idle))
 
 
 def main():
@@ -615,8 +632,9 @@ def main():
     rospy.init_node("tcp_drawing_robot_control")
     pub = rospy.Publisher("/demo/pose_final", PoseStamped, queue_size=10)
 
-    # Initialize flag
+    # Initialize flags
     first_coordinate_after_idle = True
+    gradual_approach_in_progress = False
 
     # Pick up default pencil after publisher is created
     move_client = actionlib.SimpleActionClient('/franka_gripper/move', MoveAction)
