@@ -241,8 +241,8 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
     # )
 
     # Update last valid position to pencil location instead of drawing area
-    last_valid_x = pencil_pos['x']
-    last_valid_y = pencil_pos['y']
+    # last_valid_x = pencil_pos['x']
+    # last_valid_y = pencil_pos['y']
 
     CURRENT_Z_HEIGHT = Z_IDLE
     current_pencil = None
