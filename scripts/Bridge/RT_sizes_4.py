@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "127.0.0.1" # 127.0.0.1   192.168.1.108
+SERVER_IP = "192.168.1.103" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===
@@ -45,10 +45,10 @@ WORKSPACE_Y_MAX = WORKSPACE_CENTER_Y + PAPER_HEIGHT / 2
 # === Height and Orientation ===
 MIN_Z_HEIGHT = 0.09
 MAX_Z_HEIGHT = 0.25
-Z_ACTIVE_BIG = 0.103
+Z_ACTIVE_BIG = 0.115
 Z_ACTIVE_SMALL = 0.127 # They start drawing at 0.128
 Z_ACTIVE = Z_ACTIVE_SMALL  # Default (can be overwritten when pencil is picked)
-Z_IDLE = 0.145 # Seems good
+Z_IDLE = 0.150 # Seems good
 CURRENT_Z_HEIGHT = Z_IDLE
 Z_INCREMENT = 0.001  # Fine increment for Z_ACTIVE adjustments
 
@@ -68,7 +68,7 @@ gripper_available = False
 
 # === PENCIL/COLOR SYSTEM ===
 # Base pencil pickup position
-PENCIL_BASE_X = 0.390        # Starting X coordinate for pencil pickup
+PENCIL_BASE_X = 0.4        # Starting X coordinate for pencil pickup
 PENCIL_BASE_Y_LEFT = -0.30  # Y coordinate for left pencils
 PENCIL_BASE_Y_RIGHT = 0.30  # Y coordinate for right pencils
 PENCIL_BASE_Z = 0.115        # Z coordinate for pencil pickup
@@ -121,6 +121,7 @@ COLOR_CODE_TO_PENCIL = {
     "#C0BDAEs": 20,  # White
 }
 
+last_pencil = None
 current_pencil = None
 pencil_ready = False
 first_coordinate_after_idle = True
@@ -197,7 +198,7 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
     """
     Return the current pencil to its designated position
     """
-    global gripper_closed, current_pencil, pencil_ready, CURRENT_Z_HEIGHT, last_valid_x, last_valid_y
+    global gripper_closed, current_pencil, pencil_ready, CURRENT_Z_HEIGHT, last_valid_x, last_valid_y, last_pencil
     
     if pencil_number not in PENCIL_POSITIONS:
         rospy.logwarn("Invalid pencil number: {}".format(pencil_number))
@@ -244,8 +245,9 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
     # last_valid_x = pencil_pos['x']
     # last_valid_y = pencil_pos['y']
 
-    CURRENT_Z_HEIGHT = Z_IDLE
+    CURRENT_Z_HEIGHT = approach_z
     current_pencil = None
+    last_pencil = pencil_number
     pencil_ready = False
     
     rospy.loginfo("{} returned successfully.".format(pencil_pos['name']))
@@ -254,7 +256,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     """
     Pick up a specific pencil/color
     """
-    global gripper_closed, current_pencil, pencil_ready, last_valid_x, last_valid_y, CURRENT_Z_HEIGHT
+    global gripper_closed, current_pencil, pencil_ready, last_valid_x, last_valid_y, CURRENT_Z_HEIGHT, last_pencil
     
     if pencil_number not in PENCIL_POSITIONS:
         rospy.logwarn("Invalid pencil number: {}".format(pencil_number))
@@ -281,10 +283,37 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     gripper_closed = False
     time.sleep(1.0)
     
-    # Direct movement to pencil approach position (no gradual movement)
-    publish_pose(pencil_pos['x'], pencil_pos['y'], approach_z)
-    time.sleep(1.0)  # Wait for movement to complete
+    # Determine if we need gradual movement based on side switching
+    need_gradual_movement = False
+    if last_pencil is not None:
+        # Determine sides based on pencil numbers
+        current_side = get_pencil_side(last_pencil)
+        target_side = get_pencil_side(pencil_number)
+        
+        if current_side != target_side:
+            need_gradual_movement = True
+            rospy.loginfo("Switching from {} side to {} side - using gradual movement".format(current_side, target_side))
+        else:
+            rospy.loginfo("Staying on {} side - using simple movement".format(current_side))
+    else:
+        rospy.loginfo("No current pencil - using simple movement")
     
+    # Move to pencil approach position
+    if need_gradual_movement:
+        # Use gradual movement when switching sides
+        rospy.loginfo("Using gradual movement to approach pencil position")
+        perform_gradual_movement(
+            WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, CURRENT_Z_HEIGHT,
+            pencil_pos['x'], pencil_pos['y'], approach_z,
+            steps=8, delay=0.6
+        )
+    else:
+        # Use simple movement when staying on same side or first pickup
+        rospy.loginfo("Using simple movement to approach pencil position")
+        publish_pose(pencil_pos['x'], pencil_pos['y'], approach_z)
+        time.sleep(1.0)  # Wait for movement to complete
+    
+    # Descend to pencil position
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], approach_z,
         pencil_pos['x'], pencil_pos['y'], pencil_pos['z'],
@@ -303,12 +332,14 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
         grasp_client.wait_for_result()
     time.sleep(1.0)
     
+    # Lift pencil
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], pencil_pos['z'],
         pencil_pos['x'], pencil_pos['y'], approach_z,
         steps=6, delay=0.6
     )
     
+    # Move to drawing area
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], approach_z,
         WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, Z_IDLE,
@@ -320,15 +351,34 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     pencil_ready = True
 
     # Adjust Z_ACTIVE based on pencil size
+    global Z_ACTIVE
     if pencil_number <= 10:  # Big pencil (thick grip)
         Z_ACTIVE = Z_ACTIVE_BIG
     else:  # Small pencil (tight grip)
         Z_ACTIVE = Z_ACTIVE_SMALL
     rospy.loginfo("Z_ACTIVE set to {:.3f} based on pencil size.".format(Z_ACTIVE))
 
+    # Update last valid position to drawing area center
+    last_valid_x = WORKSPACE_CENTER_X
+    last_valid_y = WORKSPACE_CENTER_Y
+
     rospy.loginfo("{} pickup complete. Robot is ready for drawing.".format(pencil_pos['name']))
 
-    
+def get_pencil_side(pencil_number):
+    """
+    Determine which side a pencil is on based on its number
+    """
+    if pencil_number <= 5:  # Left side, thick
+        return "left"
+    elif pencil_number >= 6 and pencil_number <= 10:  # Right side, thick
+        return "right"
+    elif pencil_number >= 11 and pencil_number <= 15:  # Left side, tight
+        return "left"
+    elif pencil_number >= 16:  # Right side, tight
+        return "right"
+    else:
+        return "unknown"
+
 def keyboard_listener():
     global CURRENT_Z_HEIGHT, gripper_closed, gripper_available, pencil_ready, Z_ACTIVE
     global current_pencil

@@ -13,7 +13,7 @@ from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 from franka_msgs.msg import FrankaState
 
 # === TCP Configuration ===
-SERVER_IP = "127.0.0.1" # 127.0.0.1
+SERVER_IP = "192.168.1.103" # 127.0.0.1
 SERVER_PORT = 5005
 
 # === Workspace Configuration ===
@@ -45,10 +45,10 @@ MIN_Z_HEIGHT = 0.09
 MAX_Z_HEIGHT = 0.25
 
 # Base heights for thick and tight pencils
-Z_ACTIVE_THICK_BASE = 0.103   # Base height for thick pencils (ends with 'b')
+Z_ACTIVE_THICK_BASE = 0.115   # Base height for thick pencils (ends with 'b')
 Z_ACTIVE_TIGHT_BASE = 0.127   # Base height for tight pencils (ends with 's')
 
-Z_IDLE = 0.135
+Z_IDLE = 0.145
 Z_LIFT = 0.200
 Z_INCREMENT = 0.001
 HEIGHT_TOLERANCE = 0.001  # 1mm tolerance for feedback
@@ -64,7 +64,7 @@ Z_ACTIVE = Z_ACTIVE_THICK_BASE  # Default to thick
 FIXED_ORIENTATION = {"x": 1.0, "y": 0.0, "z": 0.0, "w": 0.0}
 
 # === Pencil System ===
-PENCIL_BASE_X = 0.390 # 0.326
+PENCIL_BASE_X = 0.4 # 0.326
 PENCIL_BASE_Y_LEFT = -0.3
 PENCIL_BASE_Y_RIGHT = 0.3
 PENCIL_BASE_Z = 0.115  # Fixed pickup height 115 good
