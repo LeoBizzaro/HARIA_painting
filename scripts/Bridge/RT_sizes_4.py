@@ -197,7 +197,7 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
     """
     Return the current pencil to its designated position
     """
-    global gripper_closed, current_pencil, pencil_ready, CURRENT_Z_HEIGHT
+    global gripper_closed, current_pencil, pencil_ready, CURRENT_Z_HEIGHT, last_valid_x, last_valid_y
     
     if pencil_number not in PENCIL_POSITIONS:
         rospy.logwarn("Invalid pencil number: {}".format(pencil_number))
@@ -234,11 +234,11 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
         steps=4, delay=0.4
     )
 
-    perform_gradual_movement(
-        pencil_pos['x'], pencil_pos['y'], approach_z,
-        pencil_pos['x'], pencil_pos['y'], Z_IDLE,
-        steps=8, delay=0.6
-    )
+    # perform_gradual_movement(
+    #     pencil_pos['x'], pencil_pos['y'], approach_z,
+    #     WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, Z_IDLE,
+    #     steps=8, delay=0.6
+    # )
 
     # Update last valid position to pencil location instead of drawing area
     last_valid_x = pencil_pos['x']
@@ -313,7 +313,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], approach_z,
-        last_valid_x, last_valid_y, Z_IDLE,
+        WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, Z_IDLE,
         steps=8, delay=0.6
     )
     
