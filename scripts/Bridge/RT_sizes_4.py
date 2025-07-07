@@ -281,11 +281,9 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     gripper_closed = False
     time.sleep(1.0)
     
-    perform_gradual_movement(
-        last_valid_x, last_valid_y, CURRENT_Z_HEIGHT,
-        pencil_pos['x'], pencil_pos['y'], approach_z,
-        steps=8, delay=0.6
-    )
+    # Direct movement to pencil approach position (no gradual movement)
+    publish_pose(pencil_pos['x'], pencil_pos['y'], approach_z)
+    time.sleep(1.0)  # Wait for movement to complete
     
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], approach_z,
@@ -296,7 +294,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     time.sleep(1.0)
     
     rospy.loginfo("Grasping {}...".format(pencil_pos['name']))
-
+    
     if gripper_available:
         grasp_goal = GraspGoal(width=0.032, speed=0.05, force=20.0)  # 32mm width for 30mm pencil
         grasp_goal.epsilon.inner = 0.001
@@ -328,9 +326,9 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
         Z_ACTIVE = Z_ACTIVE_SMALL
     rospy.loginfo("Z_ACTIVE set to {:.3f} based on pencil size.".format(Z_ACTIVE))
 
-    
     rospy.loginfo("{} pickup complete. Robot is ready for drawing.".format(pencil_pos['name']))
 
+    
 def keyboard_listener():
     global CURRENT_Z_HEIGHT, gripper_closed, gripper_available, pencil_ready, Z_ACTIVE
     global current_pencil
