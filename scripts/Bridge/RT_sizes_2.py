@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "127.0.0.1" # 127.0.0.1   192.168.1.108
+SERVER_IP = "192.168.1.103" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===
@@ -182,7 +182,7 @@ def publish_pose(x, y, z):
 
 def send_simple_message():
     """
-    Send "GO" to the TCP server
+    Send "MSG" to the TCP server
     """
     global tcp_send_socket
     
@@ -192,15 +192,16 @@ def send_simple_message():
             tcp_send_socket.connect((SERVER_IP, SERVER_PORT))
         
         tcp_send_socket.send(b"GO\n")
-        rospy.loginfo("Sent: GO")
+        rospy.loginfo("Sent: MSG")
         
     except Exception as e:
-        rospy.logwarn("Failed to send GO: {}".format(e))
+        rospy.logwarn("Failed to send MSG: {}".format(e))
         tcp_send_socket = None
 
+# Add this function for pencil return message
 def send_pencil_return_message():
     """
-    Send "STOP" to the TCP server
+    Send "MSG1" to the TCP server
     """
     global tcp_send_socket
     
@@ -210,10 +211,10 @@ def send_pencil_return_message():
             tcp_send_socket.connect((SERVER_IP, SERVER_PORT))
         
         tcp_send_socket.send(b"STOP\n")
-        rospy.loginfo("Sent: STOP")
+        rospy.loginfo("Sent: MSG1")
         
     except Exception as e:
-        rospy.logwarn("Failed to send STOP: {}".format(e))
+        rospy.logwarn("Failed to send MSG1: {}".format(e))
         tcp_send_socket = None
 
 def perform_gradual_movement(start_x, start_y, start_z, end_x, end_y, end_z, steps=10, delay=0.5):
@@ -294,6 +295,8 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     
     if current_pencil is not None and current_pencil != pencil_number:
         rospy.loginfo("Returning current pencil ({}) before picking up {}".format(PENCIL_POSITIONS[current_pencil]['name'], pencil_pos['name']))
+        # SEND "STOP" WHEN PENCIL RETURNS
+        send_pencil_return_message()
         return_pencil_to_position(move_client, grasp_client, current_pencil)
     
     if current_pencil == pencil_number and pencil_ready:
@@ -372,6 +375,9 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
         WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, Z_IDLE,
         steps=6, delay=0.6
     )
+
+    # SEND "GO" WHEN REACHING DRAWING AREA
+    send_simple_message()
     
     CURRENT_Z_HEIGHT = Z_IDLE
     current_pencil = pencil_number
@@ -661,8 +667,6 @@ def idle_monitor():
                 already_idle = True
                 first_coordinate_after_idle = True  # Flag that next coordinate needs gradual approach
         
-                # SEND "STOP" WHEN PENCIL LIFTS
-                send_pencil_return_message()
 
         else:
             if already_idle and (time.time() - last_tcp_time <= 2.0):
@@ -700,9 +704,6 @@ def gradual_approach_from_idle(target_x, target_y):
     CURRENT_Z_HEIGHT = Z_ACTIVE
     first_coordinate_after_idle = False
     gradual_approach_in_progress = False  # Clear flag
-
-    # SEND "GO" WHEN REACHING Z_ACTIVE
-    send_simple_message()
 
     rospy.loginfo("=== GRADUAL APPROACH COMPLETE - READY FOR RT FOLLOWING ===")
     rospy.loginfo("first_coordinate_after_idle flag set to: {}".format(first_coordinate_after_idle))
