@@ -217,7 +217,7 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
     
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], approach_z,
-        pencil_pos['x'], pencil_pos['y'], pencil_pos['z'] + 0.04,
+        pencil_pos['x'], pencil_pos['y'], pencil_pos['z'] + 0.03,
         steps=4, delay=0.5
     )
     
