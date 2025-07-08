@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "192.168.1.103" # 127.0.0.1   192.168.1.108
+SERVER_IP = "127.0.0.1" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===
@@ -53,7 +53,7 @@ CURRENT_Z_HEIGHT = Z_IDLE
 Z_INCREMENT = 0.001  # Fine increment for Z_ACTIVE adjustments
 
 # Z-offset for safe approach from above (in meters)
-Z_APPROACH_OFFSET = 0.3
+Z_APPROACH_OFFSET = 0.15
 
 FIXED_ORIENTATION = {
     "x": 1.0,
@@ -212,13 +212,13 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
     perform_gradual_movement(
         last_valid_x, last_valid_y, CURRENT_Z_HEIGHT,
         pencil_pos['x'], pencil_pos['y'], approach_z,
-        steps=8, delay=0.6
+        steps=4, delay=0.6
     )
     
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], approach_z,
         pencil_pos['x'], pencil_pos['y'], pencil_pos['z'] + 0.04,
-        steps=8, delay=0.5
+        steps=4, delay=0.5
     )
     
     rospy.loginfo("Releasing pencil...")
@@ -234,16 +234,6 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
         pencil_pos['x'], pencil_pos['y'], approach_z,
         steps=4, delay=0.4
     )
-
-    # perform_gradual_movement(
-    #     pencil_pos['x'], pencil_pos['y'], approach_z,
-    #     WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, Z_IDLE,
-    #     steps=8, delay=0.6
-    # )
-
-    # Update last valid position to pencil location instead of drawing area
-    # last_valid_x = pencil_pos['x']
-    # last_valid_y = pencil_pos['y']
 
     CURRENT_Z_HEIGHT = approach_z
     current_pencil = None
@@ -305,7 +295,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
         perform_gradual_movement(
             WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, CURRENT_Z_HEIGHT,
             pencil_pos['x'], pencil_pos['y'], approach_z,
-            steps=8, delay=0.6
+            steps=4, delay=0.6
         )
     else:
         # Use simple movement when staying on same side or first pickup
@@ -336,14 +326,14 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], pencil_pos['z'],
         pencil_pos['x'], pencil_pos['y'], approach_z,
-        steps=6, delay=0.6
+        steps=4, delay=0.6
     )
     
     # Move to drawing area
     perform_gradual_movement(
         pencil_pos['x'], pencil_pos['y'], approach_z,
         WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, Z_IDLE,
-        steps=8, delay=0.6
+        steps=6, delay=0.6
     )
     
     CURRENT_Z_HEIGHT = Z_IDLE
