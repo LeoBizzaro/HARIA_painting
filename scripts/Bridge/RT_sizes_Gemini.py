@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "127.0.0.1" # 127.0.0.1   192.168.1.108
+SERVER_IP = "192.168.1.103" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===

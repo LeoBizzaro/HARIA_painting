@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "127.0.0.1" # 127.0.0.1   192.168.1.108
+SERVER_IP = "192.168.1.103" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===
@@ -293,7 +293,8 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
         # Use gradual movement when switching sides
         rospy.loginfo("Using gradual movement to approach pencil position")
         perform_gradual_movement(
-            WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, CURRENT_Z_HEIGHT,
+            #WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, approach_z,
+            PENCIL_POSITIONS[last_pencil]['x'], PENCIL_POSITIONS[last_pencil]['y'], approach_z,
             pencil_pos['x'], pencil_pos['y'], approach_z,
             steps=4, delay=0.6
         )
