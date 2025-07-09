@@ -12,14 +12,14 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "192.168.1.103" # 127.0.0.1   192.168.1.108
+SERVER_IP = "127.0.0.1" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===
 # Paper sizes in meters (width x height)
 PAPER_SIZES = {
     "A2": (0.420, 0.594),
-    "A3": (0.253, 0.382),
+    "A3": (0.233, 0.362), # Reduced of 2cm
     "A4": (0.210, 0.297),
     "A5": (0.148, 0.210)
 }
@@ -204,7 +204,8 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
         rospy.logwarn("Invalid pencil number: {}".format(pencil_number))
         return
 
-    sock.sendall("STOP\n".encode())
+    if sock:
+        sock.sendall("STOP\n".encode())
     
     pencil_pos = PENCIL_POSITIONS[pencil_number]
     approach_z = pencil_pos['z'] + Z_APPROACH_OFFSET
@@ -248,7 +249,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     """
     Pick up a specific pencil/color
     """
-    global gripper_closed, current_pencil, pencil_ready, last_valid_x, last_valid_y, CURRENT_Z_HEIGHT, last_pencil
+    global sock, gripper_closed, current_pencil, pencil_ready, last_valid_x, last_valid_y, CURRENT_Z_HEIGHT, last_pencil
     
     if pencil_number not in PENCIL_POSITIONS:
         rospy.logwarn("Invalid pencil number: {}".format(pencil_number))
@@ -339,8 +340,8 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
         steps=6, delay=0.6
     )
     
-    global s
-    s.sendall("GO\n".encode())
+    if sock:
+        sock.sendall("GO\n".encode())
 
     CURRENT_Z_HEIGHT = Z_IDLE
     current_pencil = pencil_number
@@ -448,8 +449,10 @@ def tcp_receiver():
     except Exception as e:
         rospy.logwarn("Gripper setup failed: {}".format(e))
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    global sock
+    if sock is None:
+        rospy.logerr("No TCP connection available.")
+        return    
+    
     try:
         rospy.loginfo("Connecting to TCP server at {}:{}...".format(SERVER_IP, SERVER_PORT))
         sock.connect((SERVER_IP, SERVER_PORT))
@@ -671,10 +674,35 @@ def gradual_approach_from_idle(target_x, target_y):
 
 
 def main():
-    global pub, gripper_available, first_coordinate_after_idle  # Add gripper_available to global declaration
+    global pub, gripper_available, first_coordinate_after_idle, sock
     rospy.init_node("tcp_drawing_robot_control")
     pub = rospy.Publisher("/demo/pose_final", PoseStamped, queue_size=10)
 
+
+    # Initialize socket connection at startup
+    sock = None
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow socket reuse
+        rospy.loginfo("Connecting to TCP server at {}:{}...".format(SERVER_IP, SERVER_PORT))
+        sock.connect((SERVER_IP, SERVER_PORT))
+        rospy.loginfo("TCP connection established.")
+        sock.settimeout(1.0)
+    except socket.error as e:
+        if e.errno == 106:  # Already connected
+            rospy.logwarn("Socket already connected, continuing...")
+        else:
+            rospy.logerr("TCP connection failed: {}".format(e))
+            if sock:
+                sock.close()
+            sock = None
+    except Exception as e:
+        rospy.logerr("TCP connection failed: {}".format(e))
+        if sock:
+            sock.close()
+        sock = None
+
+        
     # Initialize flags
     first_coordinate_after_idle = True
     gradual_approach_in_progress = False
