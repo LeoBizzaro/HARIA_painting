@@ -290,18 +290,10 @@ def pickup_pencil(pencil_number):
     if not wait_for_height(pencil_pos['x'], pencil_pos['y'], pencil_pos['z'], timeout=10.0):
         rospy.logerr("Failed to reach pickup height")
         return False
-    
-    # Close gripper
-    # if gripper_available:
-    #     grasp_goal = GraspGoal(width=0.024, speed=0.05, force=10.0)
-    #     grasp_goal.epsilon.inner = 0.002
-    #     grasp_goal.epsilon.outer = 0.008
-    #     grasp_client.send_goal(grasp_goal)
-    #     grasp_client.wait_for_result()
 
     # Close gripper for 30mm pencil
     if gripper_available:
-        grasp_goal = GraspGoal(width=0.032, speed=0.05, force=20.0)  # 32mm width for 30mm pencil
+        grasp_goal = GraspGoal(width=0.032, speed=0.05, force=17.0)  # 32mm width for 30mm pencil
         grasp_goal.epsilon.inner = 0.001
         grasp_goal.epsilon.outer = 0.005
         grasp_client.send_goal(grasp_goal)
@@ -310,9 +302,6 @@ def pickup_pencil(pencil_number):
     time.sleep(0.5)
     
     # Lift pencil using feedback (gradual)
-    # if not wait_for_height(pencil_pos['x'], pencil_pos['y'], approach_z, timeout=10.0):
-    #     rospy.logerr("Failed to lift pencil")
-    #     return False
     gradual_movement(pencil_pos['x'], pencil_pos['y'], pencil_pos['z'],
                     pencil_pos['x'], pencil_pos['y'], approach_z, steps=6, delay=0.4)
     

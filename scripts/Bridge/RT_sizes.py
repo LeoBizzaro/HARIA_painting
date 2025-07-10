@@ -316,7 +316,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     rospy.loginfo("Grasping {}...".format(pencil_pos['name']))
     
     if gripper_available:
-        grasp_goal = GraspGoal(width=0.032, speed=0.05, force=20.0)  # 32mm width for 30mm pencil
+        grasp_goal = GraspGoal(width=0.032, speed=0.05, force=17.0)  # 32mm width for 30mm pencil
         grasp_goal.epsilon.inner = 0.001
         grasp_goal.epsilon.outer = 0.005
         grasp_client.send_goal(grasp_goal)
