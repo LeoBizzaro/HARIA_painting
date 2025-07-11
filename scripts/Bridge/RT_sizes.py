@@ -45,7 +45,7 @@ WORKSPACE_Y_MAX = WORKSPACE_CENTER_Y + PAPER_HEIGHT / 2
 # === Height and Orientation ===
 MIN_Z_HEIGHT = 0.09
 MAX_Z_HEIGHT = 0.25
-Z_ACTIVE_BIG = 0.115
+Z_ACTIVE_BIG = 0.112 # it was 115
 Z_ACTIVE_SMALL = 0.127 # They start drawing at 0.128
 Z_ACTIVE = Z_ACTIVE_SMALL  # Default (can be overwritten when pencil is picked)
 Z_IDLE = 0.150 # Seems good
@@ -95,8 +95,8 @@ for i in range(1, 21):
 # Color code to pencil mapping
 COLOR_CODE_TO_PENCIL = {
     # Thick colors ("b" at the end)
-    "#16160Fb": 1,  # Black
-    "#000000b": 1,  # Black alternative
+    "#16160Fb": 10,  # Black
+    "#000000b": 10,  # Black alternative
     "#7A3D28b": 2,  # Brown
     "#D82929b": 3,  # Red
     "#E86E09b": 4,  # Orange
@@ -105,7 +105,7 @@ COLOR_CODE_TO_PENCIL = {
     "#02704Db": 7,  # Dark Green
     "#0D2875b": 8,  # Dark Blue
     "#0295D5b": 9,  # Light Blue
-    "#C0BDAEb": 10,  # White
+    "#C0BDAEb": 1,  # White
 
     # Tight colors
     "#16160Fs": 11,  # Black
@@ -654,7 +654,7 @@ def gradual_approach_from_idle(target_x, target_y):
     perform_gradual_movement(
         target_x, target_y, Z_IDLE,
         target_x, target_y, Z_ACTIVE,
-        steps=6, delay=0.3
+        steps=4, delay=0.3
     )
     
     CURRENT_Z_HEIGHT = Z_ACTIVE
@@ -681,7 +681,7 @@ def main():
     if move_client.wait_for_server(rospy.Duration(5.0)) and grasp_client.wait_for_server(rospy.Duration(5.0)):
         rospy.loginfo("Gripper servers ready. Picking up default pencil...")
         gripper_available = True  # This now properly sets the global variable
-        pickup_pencil_sequence(move_client, grasp_client, 1)
+        pickup_pencil_sequence(move_client, grasp_client, 10)
     else:
         rospy.logwarn("Gripper servers not available. Skipping default pencil pickup.")
     

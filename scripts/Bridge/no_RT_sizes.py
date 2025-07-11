@@ -13,7 +13,7 @@ from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 from franka_msgs.msg import FrankaState
 
 # === TCP Configuration ===
-SERVER_IP = "127.0.0.1" # 127.0.0.1
+SERVER_IP = "192.168.1.103" # 127.0.0.1
 SERVER_PORT = 5005
 
 # === Workspace Configuration ===
@@ -45,7 +45,7 @@ MIN_Z_HEIGHT = 0.09
 MAX_Z_HEIGHT = 0.25
 
 # Base heights for thick and tight pencils
-Z_ACTIVE_THICK_BASE = 0.115   # Base height for thick pencils (ends with 'b')
+Z_ACTIVE_THICK_BASE = 0.112   # Base height for thick pencils (ends with 'b'), it was 115
 Z_ACTIVE_TIGHT_BASE = 0.127   # Base height for tight pencils (ends with 's')
 
 Z_IDLE = 0.145
@@ -86,8 +86,8 @@ for i in range(1, 21):
 # Color code to pencil mapping
 COLOR_CODE_TO_PENCIL = {
     # Thick colors ("b" at the end)
-    "#16160Fb": 1,  # Black
-    "#000000b": 1,  # Black alternative
+    "#16160Fb": 10,  # Black
+    "#000000b": 10,  # Black alternative
     "#7A3D28b": 2,  # Brown
     "#D82929b": 3,  # Red
     "#E86E09b": 4,  # Orange
@@ -96,7 +96,7 @@ COLOR_CODE_TO_PENCIL = {
     "#02704Db": 7,  # Dark Green
     "#0D2875b": 8,  # Dark Blue
     "#0295D5b": 9,  # Light Blue
-    "#C0BDAEb": 10,  # White
+    "#C0BDAEb": 1,  # White
 
     # Tight colors
     "#16160Fs": 11,  # Black
