@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "192.168.1.103" # 127.0.0.1   192.168.1.108
+SERVER_IP = "127.0.0.1" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===
@@ -402,12 +402,12 @@ def keyboard_listener():
         elif c in ['+', '=']:
             Z_ACTIVE = min(MAX_Z_HEIGHT, Z_ACTIVE + Z_INCREMENT)
             rospy.loginfo("Z_ACTIVE height adjusted to: {:.3f}".format(Z_ACTIVE))
-            if pencil_ready and (time.time() - last_tcp_time <= 2.0):
+            if pencil_ready and (time.time() - last_tcp_time <= 1.0):
                 publish_pose(last_valid_x, last_valid_y, Z_ACTIVE)
         elif c in ['-', '_']:
             Z_ACTIVE = max(MIN_Z_HEIGHT, Z_ACTIVE - Z_INCREMENT)
             rospy.loginfo("Z_ACTIVE height adjusted to: {:.3f}".format(Z_ACTIVE))
-            if pencil_ready and (time.time() - last_tcp_time <= 2.0):
+            if pencil_ready and (time.time() - last_tcp_time <= 1.0):
                 publish_pose(last_valid_x, last_valid_y, Z_ACTIVE)
         elif c in ['o', 'O'] and gripper_available:
             goal = MoveGoal(width=0.08, speed=0.1)
@@ -617,7 +617,7 @@ def idle_monitor():
             rate.sleep()
             continue
             
-        if pencil_ready and (time.time() - last_tcp_time > 2.0):
+        if pencil_ready and (time.time() - last_tcp_time > 1.0):
             if not already_idle:
                 CURRENT_Z_HEIGHT = Z_IDLE
                 publish_pose(last_valid_x, last_valid_y, CURRENT_Z_HEIGHT)
@@ -625,7 +625,7 @@ def idle_monitor():
                 already_idle = True
                 first_coordinate_after_idle = True  # Flag that next coordinate needs gradual approach
         else:
-            if already_idle and (time.time() - last_tcp_time <= 2.0):
+            if already_idle and (time.time() - last_tcp_time <= 1.0):
                 rospy.loginfo("Exiting idle state")
                 already_idle = False
         

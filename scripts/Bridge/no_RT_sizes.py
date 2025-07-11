@@ -13,7 +13,7 @@ from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 from franka_msgs.msg import FrankaState
 
 # === TCP Configuration ===
-SERVER_IP = "192.168.1.103" # 127.0.0.1
+SERVER_IP = "127.0.0.1" # 127.0.0.1
 SERVER_PORT = 5005
 
 # === Workspace Configuration ===
@@ -24,7 +24,7 @@ PAPER_SIZES = {
     "A5": (0.148, 0.210)
 }
 
-SELECTED_PAPER = "A3"
+SELECTED_PAPER = "A4"
 PAPER_WIDTH, PAPER_HEIGHT = PAPER_SIZES[SELECTED_PAPER]
 
 WORKSPACE_CENTER_X = 0.5

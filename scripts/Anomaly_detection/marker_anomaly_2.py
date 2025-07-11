@@ -130,7 +130,7 @@ def keyboard_listener():
         elif (c == 'c' or c == 'C') and gripper_available:
             rospy.loginfo("Closing gripper using GraspAction")
             goal = GraspGoal()
-            goal.width = 0.074 # Cube width
+            goal.width = 0.03 # Cube width
             goal.epsilon.inner = 0.003
             goal.epsilon.outer = 0.003
             goal.speed = 0.05
@@ -195,10 +195,15 @@ def update_pose(x, y, z):
     
     # Orientation for horizontal gripper with fingers pointing outward
     # Using a quaternion that avoids 7th joint extreme rotation
-    pose_msg.pose.orientation.x = 0.0
-    pose_msg.pose.orientation.y = 0.7071
+    # pose_msg.pose.orientation.x = 0.0
+    # pose_msg.pose.orientation.y = 0.7071
+    # pose_msg.pose.orientation.z = 0.0
+    # pose_msg.pose.orientation.w = 0.7071
+
+    pose_msg.pose.orientation.x = 1.0
+    pose_msg.pose.orientation.y = 0.0
     pose_msg.pose.orientation.z = 0.0
-    pose_msg.pose.orientation.w = 0.7071
+    pose_msg.pose.orientation.w = 0.0
     
     pub.publish(pose_msg)
     rospy.logdebug(f"Published pose: ({x:.3f}, {y:.3f}, {z:.3f}) relative to {REFERENCE_FRAME}")
