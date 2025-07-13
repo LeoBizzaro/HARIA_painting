@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "192.168.1.100" # 127.0.0.1   192.168.1.108
+SERVER_IP = "127.0.0.1" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===
@@ -45,7 +45,7 @@ WORKSPACE_Y_MAX = WORKSPACE_CENTER_Y + PAPER_HEIGHT / 2
 # === Height and Orientation ===
 MIN_Z_HEIGHT = 0.05
 MAX_Z_HEIGHT = 0.25
-Z_ACTIVE_BIG = 0.068
+Z_ACTIVE_BIG = 0.068 # it was 115
 Z_ACTIVE_SMALL = 0.127 # They start drawing at 0.128
 Z_ACTIVE = Z_ACTIVE_SMALL  # Default (can be overwritten when pencil is picked)
 Z_IDLE = 0.100 # Seems good
@@ -95,8 +95,8 @@ for i in range(1, 21):
 # Color code to pencil mapping
 COLOR_CODE_TO_PENCIL = {
     # Thick colors ("b" at the end)
-    "#16160Fb": 1,  # Black
-    "#000000b": 1,  # Black alternative
+    "#16160Fb": 10,  # Black
+    "#000000b": 10,  # Black alternative
     "#7A3D28b": 2,  # Brown
     "#D82929b": 3,  # Red
     "#E86E09b": 4,  # Orange
@@ -105,7 +105,7 @@ COLOR_CODE_TO_PENCIL = {
     "#02704Db": 7,  # Dark Green
     "#0D2875b": 8,  # Dark Blue
     "#0295D5b": 9,  # Light Blue
-    "#6B6B6Bb": 10,  # Grey
+    "#6B6B6Bb": 1,  # Grey
 
     # Tight colors
     "#16160Fs": 11,  # Black
@@ -133,7 +133,6 @@ last_valid_y = WORKSPACE_CENTER_Y
 last_tcp_time = 0
 
 pub = None
-sock = None # Global socket variable
 
 def getch():
     fd = sys.stdin.fileno()
@@ -199,15 +198,7 @@ def return_pencil_to_position(move_client, grasp_client, pencil_number):
     """
     Return the current pencil to its designated position
     """
-    global gripper_closed, current_pencil, pencil_ready, CURRENT_Z_HEIGHT, last_valid_x, last_valid_y, last_pencil, sock
-    
-    # Send "STOP" message to the server
-    if sock:
-        try:
-            rospy.loginfo("Sending 'STOP' message to the server.")
-            sock.sendall(b"STOP\n")
-        except Exception as e:
-            rospy.logwarn("Failed to send 'STOP' message: {}".format(e))
+    global gripper_closed, current_pencil, pencil_ready, CURRENT_Z_HEIGHT, last_valid_x, last_valid_y, last_pencil
     
     if pencil_number not in PENCIL_POSITIONS:
         rospy.logwarn("Invalid pencil number: {}".format(pencil_number))
@@ -255,7 +246,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     """
     Pick up a specific pencil/color
     """
-    global gripper_closed, current_pencil, pencil_ready, last_valid_x, last_valid_y, CURRENT_Z_HEIGHT, last_pencil, sock
+    global gripper_closed, current_pencil, pencil_ready, last_valid_x, last_valid_y, CURRENT_Z_HEIGHT, last_pencil
     
     if pencil_number not in PENCIL_POSITIONS:
         rospy.logwarn("Invalid pencil number: {}".format(pencil_number))
@@ -302,6 +293,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
         # Use gradual movement when switching sides
         rospy.loginfo("Using gradual movement to approach pencil position")
         perform_gradual_movement(
+            #WORKSPACE_CENTER_X, WORKSPACE_CENTER_Y, approach_z,
             PENCIL_POSITIONS[last_pencil]['x'], PENCIL_POSITIONS[last_pencil]['y'], approach_z,
             pencil_pos['x'], pencil_pos['y'], approach_z,
             steps=4, delay=0.6
@@ -310,7 +302,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
         # Use simple movement when staying on same side or first pickup
         rospy.loginfo("Using simple movement to approach pencil position")
         publish_pose(pencil_pos['x'], pencil_pos['y'], approach_z)
-        time.sleep(1.0)
+        time.sleep(1.0)  # Wait for movement to complete
     
     # Descend to pencil position
     perform_gradual_movement(
@@ -324,7 +316,7 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     rospy.loginfo("Grasping {}...".format(pencil_pos['name']))
     
     if gripper_available:
-        grasp_goal = GraspGoal(width=0.032, speed=0.05, force=17.0)
+        grasp_goal = GraspGoal(width=0.032, speed=0.05, force=17.0)  # 32mm width for 30mm pencil
         grasp_goal.epsilon.inner = 0.001
         grasp_goal.epsilon.outer = 0.005
         grasp_client.send_goal(grasp_goal)
@@ -349,37 +341,31 @@ def pickup_pencil_sequence(move_client, grasp_client, pencil_number):
     current_pencil = pencil_number
     pencil_ready = True
 
+    # Adjust Z_ACTIVE based on pencil size
     global Z_ACTIVE
-    if pencil_number <= 10:
+    if pencil_number <= 10:  # Big pencil (thick grip)
         Z_ACTIVE = Z_ACTIVE_BIG
-    else:
+    else:  # Small pencil (tight grip)
         Z_ACTIVE = Z_ACTIVE_SMALL
     rospy.loginfo("Z_ACTIVE set to {:.3f} based on pencil size.".format(Z_ACTIVE))
 
+    # Update last valid position to drawing area center
     last_valid_x = WORKSPACE_CENTER_X
     last_valid_y = WORKSPACE_CENTER_Y
 
     rospy.loginfo("{} pickup complete. Robot is ready for drawing.".format(pencil_pos['name']))
 
-    # Send "GO" message to the server
-    if sock:
-        try:
-            rospy.loginfo("Sending 'GO' message to the server.")
-            sock.sendall(b"GO\n")
-        except Exception as e:
-            rospy.logwarn("Failed to send 'GO' message: {}".format(e))
-
 def get_pencil_side(pencil_number):
     """
     Determine which side a pencil is on based on its number
     """
-    if pencil_number <= 5:
+    if pencil_number <= 5:  # Left side, thick
         return "left"
-    elif 6 <= pencil_number <= 10:
+    elif pencil_number >= 6 and pencil_number <= 10:  # Right side, thick
         return "right"
-    elif 11 <= pencil_number <= 15:
+    elif pencil_number >= 11 and pencil_number <= 15:  # Left side, tight
         return "left"
-    elif pencil_number >= 16:
+    elif pencil_number >= 16:  # Right side, tight
         return "right"
     else:
         return "unknown"
@@ -416,12 +402,12 @@ def keyboard_listener():
         elif c in ['+', '=']:
             Z_ACTIVE = min(MAX_Z_HEIGHT, Z_ACTIVE + Z_INCREMENT)
             rospy.loginfo("Z_ACTIVE height adjusted to: {:.3f}".format(Z_ACTIVE))
-            if pencil_ready and (time.time() - last_tcp_time <= 2.0):
+            if pencil_ready and (time.time() - last_tcp_time <= 1.0):
                 publish_pose(last_valid_x, last_valid_y, Z_ACTIVE)
         elif c in ['-', '_']:
             Z_ACTIVE = max(MIN_Z_HEIGHT, Z_ACTIVE - Z_INCREMENT)
             rospy.loginfo("Z_ACTIVE height adjusted to: {:.3f}".format(Z_ACTIVE))
-            if pencil_ready and (time.time() - last_tcp_time <= 2.0):
+            if pencil_ready and (time.time() - last_tcp_time <= 1.0):
                 publish_pose(last_valid_x, last_valid_y, Z_ACTIVE)
         elif c in ['o', 'O'] and gripper_available:
             goal = MoveGoal(width=0.08, speed=0.1)
@@ -442,8 +428,9 @@ def keyboard_listener():
             rospy.signal_shutdown("Keyboard quit")
             break
 
+
 def tcp_receiver():
-    global last_valid_x, last_valid_y, last_tcp_time, first_coordinate_after_idle, sock
+    global last_valid_x, last_valid_y, last_tcp_time, first_coordinate_after_idle
 
     move_client = actionlib.SimpleActionClient('/franka_gripper/move', MoveAction)
     grasp_client = actionlib.SimpleActionClient('/franka_gripper/grasp', GraspAction)
@@ -455,7 +442,7 @@ def tcp_receiver():
             rospy.logwarn("Gripper servers not available for color changes.")
     except Exception as e:
         rospy.logwarn("Gripper setup failed: {}".format(e))
-    
+
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         rospy.loginfo("Connecting to TCP server at {}:{}...".format(SERVER_IP, SERVER_PORT))
@@ -513,11 +500,13 @@ def tcp_receiver():
                             last_tcp_time = time.time()
                             
                             if pencil_ready:
+                                # NEW LOGIC: Check if this is the first coordinate after idle
                                 if first_coordinate_after_idle:
                                     rospy.loginfo("First coordinate after idle detected - using gradual approach")
                                     rospy.loginfo("first_coordinate_after_idle flag was: {}".format(first_coordinate_after_idle))
                                     gradual_approach_from_idle(raw_x, raw_y)
                                 else:
+                                    # Normal real-time following
                                     publish_pose(raw_x, raw_y, Z_ACTIVE)
                             else:
                                 if coordinate_messages % 180 == 0:
@@ -537,10 +526,9 @@ def tcp_receiver():
     except Exception as e:
         rospy.logerr("TCP connection failed: {}".format(e))
     finally:
-        if sock:
-            sock.close()
-            sock = None
-            rospy.loginfo("TCP socket closed.")
+        sock.close()
+        rospy.loginfo("TCP socket closed.")
+
 
 def parse_tcp_message(message):
     """
@@ -583,6 +571,7 @@ def parse_tcp_message(message):
     
     return None, None, None
 
+
 def handle_color_change(color_code, move_client, grasp_client):
     """
     Handles color change based on the code received via TCP.
@@ -604,6 +593,7 @@ def handle_color_change(color_code, move_client, grasp_client):
             return_pencil_to_position(move_client, grasp_client, current_pencil)
         
         pickup_pencil_sequence(move_client, grasp_client, new_pencil)
+        # Update Z_ACTIVE depending on pencil size
         global Z_ACTIVE
         if new_pencil <= 10:
             Z_ACTIVE = Z_ACTIVE_BIG
@@ -615,29 +605,32 @@ def handle_color_change(color_code, move_client, grasp_client):
     else:
         rospy.logwarn("Unknown color code received: {}".format(color_code))
 
+
 def idle_monitor():
     global CURRENT_Z_HEIGHT, first_coordinate_after_idle, gradual_approach_in_progress
     rate = rospy.Rate(2)
     already_idle = False
     
     while not rospy.is_shutdown():
+        # Don't interfere if gradual approach is in progress
         if gradual_approach_in_progress:
             rate.sleep()
             continue
             
-        if pencil_ready and (time.time() - last_tcp_time > 2.0):
+        if pencil_ready and (time.time() - last_tcp_time > 1.0):
             if not already_idle:
                 CURRENT_Z_HEIGHT = Z_IDLE
                 publish_pose(last_valid_x, last_valid_y, CURRENT_Z_HEIGHT)
                 rospy.loginfo("Pencil moved to idle position: Z={} - Next coordinate will use gradual approach".format(Z_IDLE))
                 already_idle = True
-                first_coordinate_after_idle = True
+                first_coordinate_after_idle = True  # Flag that next coordinate needs gradual approach
         else:
-            if already_idle and (time.time() - last_tcp_time <= 2.0):
+            if already_idle and (time.time() - last_tcp_time <= 1.0):
                 rospy.loginfo("Exiting idle state")
                 already_idle = False
         
         rate.sleep()
+
 
 def gradual_approach_from_idle(target_x, target_y):
     """
@@ -648,12 +641,15 @@ def gradual_approach_from_idle(target_x, target_y):
     rospy.loginfo("=== PERFORMING GRADUAL APPROACH FROM IDLE ===")
     rospy.loginfo("Target position: ({:.3f}, {:.3f})".format(target_x, target_y))
     
+    # Set flag to prevent idle monitor interference
     gradual_approach_in_progress = True
     
+    # Step 1: Move to target X,Y at current idle height
     rospy.loginfo("Step 1: Moving to target X,Y at idle height")
     publish_pose(target_x, target_y, Z_IDLE)
-    time.sleep(0.8)
+    time.sleep(0.8)  # Wait for movement to complete
     
+    # Step 2: Gradually descend to active drawing height
     rospy.loginfo("Step 2: Gradually descending to active height")
     perform_gradual_movement(
         target_x, target_y, Z_IDLE,
@@ -663,31 +659,28 @@ def gradual_approach_from_idle(target_x, target_y):
     
     CURRENT_Z_HEIGHT = Z_ACTIVE
     first_coordinate_after_idle = False
-    gradual_approach_in_progress = False
+    gradual_approach_in_progress = False  # Clear flag
     rospy.loginfo("=== GRADUAL APPROACH COMPLETE - READY FOR RT FOLLOWING ===")
     rospy.loginfo("first_coordinate_after_idle flag set to: {}".format(first_coordinate_after_idle))
 
+
 def main():
-    global pub, gripper_available, first_coordinate_after_idle
+    global pub, gripper_available, first_coordinate_after_idle  # Add gripper_available to global declaration
     rospy.init_node("tcp_drawing_robot_control")
     pub = rospy.Publisher("/demo/pose_final", PoseStamped, queue_size=10)
 
+    # Initialize flags
     first_coordinate_after_idle = True
     gradual_approach_in_progress = False
 
+    # Pick up default pencil after publisher is created
     move_client = actionlib.SimpleActionClient('/franka_gripper/move', MoveAction)
     grasp_client = actionlib.SimpleActionClient('/franka_gripper/grasp', GraspAction)
 
-    threading.Thread(target=tcp_receiver, daemon=True).start()
-    
-    rospy.loginfo("Waiting for gripper servers to become available...")
+    rospy.loginfo("Waiting for gripper servers to become available for default pencil pickup...")
     if move_client.wait_for_server(rospy.Duration(5.0)) and grasp_client.wait_for_server(rospy.Duration(5.0)):
-        gripper_available = True
-        rospy.loginfo("Gripper servers ready.")
-        
-        # <<< MODIFICATION: Default pencil pickup is now enabled.
-        # This will run after the TCP connection is attempted.
-        time.sleep(2) # Give TCP thread a moment to connect
+        rospy.loginfo("Gripper servers ready. Picking up default pencil...")
+        gripper_available = True  # This now properly sets the global variable
         pickup_pencil_sequence(move_client, grasp_client, 10)
     else:
         rospy.logwarn("Gripper servers not available. Skipping default pencil pickup.")
@@ -703,6 +696,7 @@ def main():
     rospy.loginfo("===============================")
     
     threading.Thread(target=keyboard_listener, daemon=True).start()
+    threading.Thread(target=tcp_receiver, daemon=True).start()
     threading.Thread(target=idle_monitor, daemon=True).start()
     
     rospy.spin()

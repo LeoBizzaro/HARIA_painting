@@ -109,7 +109,7 @@ public:
         // Safety parameters
         nh.param("safety_factor", safety_factor, 1.0);
         nh.param("max_velocity", max_velocity, 0.5);                     // Higher max velocity
-        nh.param("emergency_stop_distance", emergency_stop_distance, 0.4); // 30cm emergency stop
+        nh.param("emergency_stop_distance", emergency_stop_distance, 0.45); // 30cm emergency stop
         nh.param("max_acceleration", max_acceleration, 5.0);             // Joint acceleration limit
         
         // VR precision parameters
@@ -437,7 +437,7 @@ public:
 int main(int argc, char **argv) {
     ros::init(argc, argv, "update_pose_end_effector_vr");
     UpdatePoseEndEffector update;
-    ros::Rate loop_rate(50); // 100Hz control loop
+    ros::Rate loop_rate(500); // 100Hz control loop
     
     ROS_INFO("VR Real-time Drawing Controller Started");
     
