@@ -33,7 +33,7 @@ THICK_COLORS = {
     "#02704Db": {"display_color": "#02704D", "name": "Dark Green", "code": 7},
     "#0D2875b": {"display_color": "#0D2875", "name": "Dark Blue", "code": 8},
     "#0295D5b": {"display_color": "#0295D5", "name": "Light Blue", "code": 9},
-    "#6B6B6Bb": {"display_color": "#6B6B6Bb", "name": "White", "code": 10}
+    "#6B6B6Bb": {"display_color": "#6B6B6B", "name": "White", "code": 10}
 }
 
 TIGHT_COLORS = {

@@ -95,8 +95,7 @@ for i in range(1, 21):
 # Color code to pencil mapping
 COLOR_CODE_TO_PENCIL = {
     # Thick colors ("b" at the end)
-    "#16160Fb": 1,  # Black
-    "#000000b": 1,  # Black alternative
+    "#6B6B6Bb": 1,  # Grey
     "#7A3D28b": 2,  # Brown
     "#D82929b": 3,  # Red
     "#E86E09b": 4,  # Orange
@@ -105,7 +104,8 @@ COLOR_CODE_TO_PENCIL = {
     "#02704Db": 7,  # Dark Green
     "#0D2875b": 8,  # Dark Blue
     "#0295D5b": 9,  # Light Blue
-    "#6B6B6Bb": 10,  # Grey
+    "#16160Fb": 10,  # Black
+    "#000000b": 10,  # Black alternative
 
     # Tight colors
     "#16160Fs": 11,  # Black
@@ -658,7 +658,7 @@ def gradual_approach_from_idle(target_x, target_y):
     perform_gradual_movement(
         target_x, target_y, Z_IDLE,
         target_x, target_y, Z_ACTIVE,
-        steps=3, delay=0.3
+        steps=2, delay=0.3
     )
     
     CURRENT_Z_HEIGHT = Z_ACTIVE

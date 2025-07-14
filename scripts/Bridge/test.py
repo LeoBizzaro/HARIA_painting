@@ -5,7 +5,7 @@ import tty
 import termios
 
 # Server configuration
-SERVER_IP = "192.168.1.103"
+SERVER_IP = "192.168.1.100"
 SERVER_PORT = 5005
 
 # Global socket for receiving
