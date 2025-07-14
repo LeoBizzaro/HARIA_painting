@@ -658,7 +658,7 @@ def gradual_approach_from_idle(target_x, target_y):
     perform_gradual_movement(
         target_x, target_y, Z_IDLE,
         target_x, target_y, Z_ACTIVE,
-        steps=4, delay=0.3
+        steps=3, delay=0.3
     )
     
     CURRENT_Z_HEIGHT = Z_ACTIVE

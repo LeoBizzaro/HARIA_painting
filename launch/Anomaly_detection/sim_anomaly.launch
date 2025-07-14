@@ -19,7 +19,7 @@
           args="fr_joint_velocity_controller"/>
           
     <!-- Run the updatePoseEndEffectorEig node -->
-    <node name="update_pose_end_effector" pkg="franka_demo_package" type="updatePoseEndEffectorEig" output="screen"/>
+    <node name="update_pose_end_effector" pkg="franka_demo_package" type="updatePoseEndEffectorEig3" output="screen"/>
     
      <!-- Run the iterative marker node -->   
     <node name="interactive_marker_node"

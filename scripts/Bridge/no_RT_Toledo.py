@@ -13,7 +13,7 @@ from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 from franka_msgs.msg import FrankaState
 
 # === TCP Configuration ===
-SERVER_IP = "127.0.0.1" # 127.0.0.1
+SERVER_IP = "192.168.1.100" # 127.0.0.1
 SERVER_PORT = 5005
 
 # === Workspace Configuration ===
