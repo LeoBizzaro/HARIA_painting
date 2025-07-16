@@ -12,7 +12,7 @@ from geometry_msgs.msg import PoseStamped
 from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 
 # === TCP Parameters ===
-SERVER_IP = "192.168.1.100" # 127.0.0.1   192.168.1.108
+SERVER_IP = "192.168.1.103" # 127.0.0.1   192.168.1.108
 SERVER_PORT = 5005
 
 # === WORKSPACE CONFIGURATION ===
@@ -68,7 +68,7 @@ gripper_available = False
 
 # === PENCIL/COLOR SYSTEM ===
 # Base pencil pickup position
-PENCIL_BASE_X = 0.35        # Starting X coordinate for pencil pickup
+PENCIL_BASE_X = 0.37        # Starting X coordinate for pencil pickup
 PENCIL_BASE_Y_LEFT = -0.29  # Y coordinate for left pencils
 PENCIL_BASE_Y_RIGHT = 0.29  # Y coordinate for right pencils
 PENCIL_BASE_Z = 0.066        # Z coordinate for pencil pickup

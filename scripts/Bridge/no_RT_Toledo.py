@@ -13,7 +13,7 @@ from franka_gripper.msg import MoveAction, MoveGoal, GraspAction, GraspGoal
 from franka_msgs.msg import FrankaState
 
 # === TCP Configuration ===
-SERVER_IP = "192.168.1.100" # 127.0.0.1
+SERVER_IP = "192.168.1.103" # 127.0.0.1
 SERVER_PORT = 5005
 
 # === Workspace Configuration ===
@@ -64,7 +64,7 @@ Z_ACTIVE = Z_ACTIVE_THICK_BASE  # Default to thick
 FIXED_ORIENTATION = {"x": 1.0, "y": 0.0, "z": 0.0, "w": 0.0}
 
 # === Pencil System ===
-PENCIL_BASE_X = 0.35 # 0.326
+PENCIL_BASE_X = 0.37 # 0.326
 PENCIL_BASE_Y_LEFT = -0.29
 PENCIL_BASE_Y_RIGHT = 0.29
 PENCIL_BASE_Z = 0.066  # Fixed pickup height 115 good
