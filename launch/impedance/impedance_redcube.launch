@@ -19,6 +19,16 @@
           args="fr_joint_torque_controller"/>
           
     <!-- Run the impedance controller node -->
-    <node name="cartesian_impedance_controller" pkg="franka_demo_package" type="cartesian_impedance_controller_react" output="screen"/> 
+    <node name="cartesian_impedance_controller" pkg="franka_demo_package" type="cartesian_impedance_controller_PID" output="screen"/> 
+    
+     <!-- Run the iterative marker node -->   
+    <node name="interactive_marker_node"
+        pkg="franka_demo_package"
+        type="marker_anomaly_2.py"
+        output="screen"
+        cwd="node" />
+    
+    <!-- Run the RViz with the marker -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find franka_demo_package)/rviz_configs/anomaly_scene_2.rviz" />  
 
 </launch>
